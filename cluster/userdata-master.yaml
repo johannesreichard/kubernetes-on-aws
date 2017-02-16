@@ -30,10 +30,10 @@ coreos:
           content: |
             [Service]
             EnvironmentFile=/etc/kubernetes/cni/docker_opts_cni.env
-        - name: 50-logging.conf
+        - name: 60-dockeropts.conf
           content: |
             [Service]
-            Environment="DOCKER_OPTS=--log-opt=max-file=2 --log-opt=max-size=50m"
+            Environment="DOCKER_OPTS=--iptables=false --log-opt=max-file=2 --log-opt=max-size=50m"
 
     - name: kubelet.service
       command: start
@@ -75,6 +75,36 @@ coreos:
         --kube-reserved=cpu=100m,memory=282Mi
         Restart=always
         RestartSec=10
+
+        [Install]
+        WantedBy=multi-user.target
+
+    - name: kube-node-drainer.service
+      enable: true
+      command: start
+      runtime: true
+      content: |
+        [Unit]
+        Description=drain this k8s node to make running pods time to gracefully shut down before stopping kubelet
+        Requires=docker.service
+        After=docker.service
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=true
+        ExecStart=/bin/true
+        TimeoutStopSec=120s
+        ExecStop=/bin/sh -c '/usr/bin/rkt run \
+        --volume=kube,kind=host,source=/etc/kubernetes,readOnly=true \
+        --mount=volume=kube,target=/etc/kubernetes \
+        --net=host \
+        registry.opensource.zalan.do/teapot/hyperkube:v1.5.2_coreos.0 \
+          --exec=/kubectl -- \
+          --kubeconfig=/etc/kubernetes/kubeconfig \
+          drain $(hostname) \
+          --ignore-daemonsets \
+          --delete-local-data \
+          --force'
 
         [Install]
         WantedBy=multi-user.target
@@ -272,7 +302,7 @@ write_files:
             limits:
               cpu: 200m
               memory: 1Gi
-        - image: registry.opensource.zalan.do/teapot/k8s-authnz-webhook:v0.1.1
+        - image: registry.opensource.zalan.do/teapot/k8s-authnz-webhook:v0.1.2
           name: webhook
           ports:
           - containerPort: 8081

@@ -2,6 +2,11 @@
 Example application with IAM credentials
 ========================================
 
+.. Note::
+
+    This section describes the legacy way of getting OAuth credentials via Mint.
+    Please read :ref:`zalando-iam-integration` for the recommended new approach.
+
 This is a full example manifest of an application (``myapp``) which uses IAM
 credentials distributed via a mint-bucket (``zalando-stups-mint-12345678910-eu-central-1``).
 
@@ -54,7 +59,7 @@ In this example the AWS access role for the S3 bucket is called ``myapp-iam-role
                   mountPath: /meta/credentials
                   readOnly: true
             - name: gerry
-              image: registry.opensource.zalan.do/teapot/gerry:v0.0.8
+              image: registry.opensource.zalan.do/teapot/gerry:v0.0.9
               args:
                 - /meta/credentials
                 - --application-id=myapp
@@ -83,7 +88,7 @@ The next important part is the ``gerry`` *sidecar*.
 .. code-block:: yaml
 
     - name: gerry
-      image: registry.opensource.zalan.do/teapot/gerry:v0.0.8
+      image: registry.opensource.zalan.do/teapot/gerry:v0.0.9
       args:
         - /meta/credentials
         - --application-id=myapp
